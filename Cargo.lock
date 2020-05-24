@@ -942,6 +942,8 @@ dependencies = [
  "headless_chrome",
  "hyper 0.13.5",
  "image",
+ "serde",
+ "serde_json",
  "structopt",
 ]
 

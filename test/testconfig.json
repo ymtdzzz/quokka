@@ -1,0 +1,23 @@
+{
+  "images": "design_camp",
+  "watch": "src",
+  "url": "127.0.0.1:9001",
+  "settings": [
+    {
+      "name": "index_pc.png",
+      "path": "/"
+    },
+    {
+      "name": "index_sp.png",
+      "path": "/"
+    },
+    {
+      "name": "posts_pc.png",
+      "path": "/posts"
+    },
+    {
+      "name": "posts_sp.png",
+      "path": "/posts"
+    }
+  ]
+}
