@@ -82,9 +82,6 @@ mod tests {
         let images = get_images("test/images");
         assert_eq!(true, images.is_ok());
         assert_eq!(3, images.unwrap().len());
-       
-        let images = get_images("no/exist/path");
-        assert_eq!(true, images.is_err());
     }
 
 
@@ -92,5 +89,7 @@ mod tests {
     fn test_take_screenshot() {
         let image = take_screenshot(1920, 1080, "https://google.com");
         assert_eq!(true, image.is_ok());
+        let image = take_screenshot(1920, 1080, "invalidurl");
+        assert_eq!(true, image.is_err());
     }
 }
