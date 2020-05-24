@@ -1,0 +1,11 @@
+{
+  "images": "test/design_camp",
+  "watch": "src",
+  "url": "https://crates.io/",
+  "settings": [
+    {
+      "name": "crates_io_pc.png",
+      "path": "/"
+    }
+  ]
+}

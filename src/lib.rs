@@ -1,10 +1,12 @@
 use anyhow::Error;
-use image::{open, DynamicImage};
+use image::{open, DynamicImage, GenericImageView};
 use std::fs;
 use std::path::Path;
 use headless_chrome::{Browser, protocol::page::*};
 use headless_chrome::protocol::target::methods::CreateTarget;
 use serde::{Serialize, Deserialize};
+use url::Url;
+use lcs_image_diff::compare;
 
 pub type Result<T> = std::result::Result<T, Error>;
 
@@ -45,36 +47,18 @@ impl IndivisualSetting {
     }
 }
 
-pub fn get_images(path: &str) -> Result<Vec<DynamicImage>> {
-    let paths = fs::read_dir(path)?;
-    let mut images: Vec<DynamicImage> = vec![];
-    for path in paths {
-        if let Ok(entry) = path {
-            if is_image(entry.path().to_str().unwrap()) {
-                images.push(open(entry.path())?);
-            }
+pub fn get_diffs(config: &Config) -> Result<()> {
+    let url = Url::parse(&config.url)?;
+    for setting in &config.settings {
+        let mut camp = image::open(Path::new(&config.images).join(&setting.name))?;
+        let screenshot = take_screenshot(camp.width() as i32, camp.height() as i32, url.join(&setting.path)?.as_str());
+        if let Ok(actual) = screenshot {
+            let mut actual = image::load_from_memory(&actual)?;
+            let diff = compare(&mut camp, &mut actual, 100.0 / 256.0)?;
+            diff.save("aaaaa.png")?;
         }
     }
-    Ok(images)
-}
-
-fn is_image(path: &str) -> bool {
-    let path = Path::new(path);
-    let filename = path.file_name();
-    if let Some(f) = filename {
-        let f = f.to_str().unwrap();
-        let strs: Vec<&str> = f.split('.').collect();
-        if strs.len() > 1 {
-            let last_str = strs.last();
-            if let Some(last) = last_str {
-                match last {
-                    &"png" | &"jpeg" | &"jpg" => return true,
-                    _ => return false,
-                }
-            }
-        }
-    };
-    return false;
+    Ok(())
 }
 
 fn take_screenshot(width: i32, height: i32, url: &str) -> anyhow::Result<Vec<u8>, failure::Error> {
@@ -99,29 +83,6 @@ fn take_screenshot(width: i32, height: i32, url: &str) -> anyhow::Result<Vec<u8>
 #[cfg(test)]
 mod tests {
     use super::*;
-
-    #[test]
-    fn test_is_image() {
-        assert_eq!(true, is_image("test/images/pngimage.png"));
-        assert_eq!(true, is_image("test/images/jpegimage.jpeg"));
-        assert_eq!(true, is_image("test/images/jpegimage.jpg"));
-
-        assert_eq!(false, is_image("test/images/image.txt"));
-        assert_eq!(false, is_image("test/images/png"));
-        assert_eq!(false, is_image("test/images/directory"));
-        assert_eq!(false, is_image("test/images/.."));
-    }
-
-    #[test]
-    fn test_get_images() {
-        let images = get_images("test/images");
-        assert_eq!(true, images.is_ok());
-        assert_eq!(3, images.unwrap().len());
-        let images = get_images("not/exists/directory");
-        assert_eq!(true, images.is_err());
-        let images = get_images("test/images/pngimage.png");
-        assert_eq!(true, images.is_err());
-    }
 
     #[test]
     fn test_take_screenshot() {
@@ -157,5 +118,11 @@ mod tests {
         assert_eq!(true, actual.is_ok());
         assert_eq!(expected, actual.unwrap());
         assert_eq!(true, Config::new(None).is_err());
+    }
+
+    #[test]
+    fn test_get_diffs() {
+        let config = Config::new(Some("test/testconfig2.json")).unwrap();
+        get_diffs(&config);
     }
 }
