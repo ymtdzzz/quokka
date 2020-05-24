@@ -938,6 +938,7 @@ name = "quokka"
 version = "0.1.0"
 dependencies = [
  "anyhow",
+ "failure",
  "headless_chrome",
  "hyper 0.13.5",
  "image",
