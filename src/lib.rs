@@ -22,24 +22,20 @@ pub fn get_images(path: &str) -> Result<Vec<DynamicImage>> {
 
 fn is_image(path: &str) -> bool {
     let path = Path::new(path);
-    if path.is_file() {
-        let filename = path.file_name();
-        if let Some(f) = filename {
-            let f = f.to_str();
-            if let Some(fname) = f {
-                let strs: Vec<&str> = fname.split('.').collect();
-                if strs.len() > 1 {
-                    let last_str = strs.last();
-                    if let Some(last) = last_str {
-                        match last {
-                            &"png" | &"jpeg" | &"jpg" => return true,
-                            _ => return false,
-                        }
-                    }
+    let filename = path.file_name();
+    if let Some(f) = filename {
+        let f = f.to_str().unwrap();
+        let strs: Vec<&str> = f.split('.').collect();
+        if strs.len() > 1 {
+            let last_str = strs.last();
+            if let Some(last) = last_str {
+                match last {
+                    &"png" | &"jpeg" | &"jpg" => return true,
+                    _ => return false,
                 }
             }
-        };
-    }
+        }
+    };
     return false;
 }
 
@@ -62,6 +58,7 @@ fn take_screenshot(width: i32, height: i32, url: &str) -> anyhow::Result<Vec<u8>
     Ok(screenshot)
 }
 
+// GRCOV_EXCL_START
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -75,6 +72,7 @@ mod tests {
         assert_eq!(false, is_image("test/images/image.txt"));
         assert_eq!(false, is_image("test/images/png"));
         assert_eq!(false, is_image("test/images/directory"));
+        assert_eq!(false, is_image("test/images/.."));
     }
 
     #[test]
@@ -82,6 +80,10 @@ mod tests {
         let images = get_images("test/images");
         assert_eq!(true, images.is_ok());
         assert_eq!(3, images.unwrap().len());
+        let images = get_images("not/exists/directory");
+        assert_eq!(true, images.is_err());
+        let images = get_images("test/images/pngimage.png");
+        assert_eq!(true, images.is_err());
     }
 
 
@@ -93,3 +95,4 @@ mod tests {
         assert_eq!(true, image.is_err());
     }
 }
+// GRCOV_EXCL_STOP

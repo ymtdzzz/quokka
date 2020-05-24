@@ -13,4 +13,4 @@ cargo +nightly build --verbose
 cargo +nightly test --verbose
 
 grcov ./target/debug/deps -s . -t lcov --llvm --branch --ignore-not-existing --ignore "/*" --excl-start GRCOV_EXCL_START --excl-stop GRCOV_EXCL_STOP -o lcov.info
-genhtml -o report/ --show-details --highlight --ignore-errors source --legend lcov.info
+genhtml -o report/ --show-details --highlight --branch-coverage --ignore-errors source --legend lcov.info
