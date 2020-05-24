@@ -67,27 +67,29 @@ mod tests {
     use super::*;
 
     #[test]
-    fn is_image_with_image() {
+    fn test_is_image() {
         assert_eq!(true, is_image("test/images/pngimage.png"));
         assert_eq!(true, is_image("test/images/jpegimage.jpeg"));
         assert_eq!(true, is_image("test/images/jpegimage.jpg"));
-    }
 
-    #[test]
-    fn is_image_with_other() {
         assert_eq!(false, is_image("test/images/image.txt"));
         assert_eq!(false, is_image("test/images/png"));
         assert_eq!(false, is_image("test/images/directory"));
     }
 
     #[test]
-    fn get_images_works() {
+    fn test_get_images() {
         let images = get_images("test/images");
+        assert_eq!(true, images.is_ok());
         assert_eq!(3, images.unwrap().len());
+       
+        let images = get_images("no/exist/path");
+        assert_eq!(true, images.is_err());
     }
 
+
     #[test]
-    fn  take_screenshot_works() {
+    fn test_take_screenshot() {
         let image = take_screenshot(1920, 1080, "https://google.com");
         assert_eq!(true, image.is_ok());
     }
