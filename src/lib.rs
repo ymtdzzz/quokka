@@ -6,7 +6,7 @@ use headless_chrome::{Browser, protocol::page::*};
 use headless_chrome::protocol::target::methods::CreateTarget;
 use serde::{Serialize, Deserialize};
 use url::Url;
-use lcs_image_diff::compare;
+use image_diff::diff;
 
 pub type Result<T> = std::result::Result<T, Error>;
 
@@ -52,10 +52,15 @@ pub fn get_diffs(config: &Config) -> Result<()> {
     for setting in &config.settings {
         let mut camp = image::open(Path::new(&config.images).join(&setting.name))?;
         let screenshot = take_screenshot(camp.width() as i32, camp.height() as i32, url.join(&setting.path)?.as_str());
+        println!("{:?}", camp.width());
+        println!("{:?}", camp.height());
         if let Ok(actual) = screenshot {
             let mut actual = image::load_from_memory(&actual)?;
-            let diff = compare(&mut camp, &mut actual, 100.0 / 256.0)?;
-            diff.save("aaaaa.png")?;
+            actual.save("actual.png");
+            println!("{:?}", actual.width());
+            println!("{:?}", actual.height());
+            let dif = diff(&camp, &actual)?;
+            dif.save("diff.png");
         }
     }
     Ok(())
@@ -65,8 +70,8 @@ fn take_screenshot(width: i32, height: i32, url: &str) -> anyhow::Result<Vec<u8>
     let browser = Browser::default()?;
     let tab = browser.new_tab_with_options(CreateTarget {
         url: url,
-        width: Some(width),
-        height: Some(height),
+        width: Some(width / 2),
+        height: Some(height / 2),
         browser_context_id: None,
         enable_begin_frame_control: None,
     })?;
@@ -124,5 +129,6 @@ mod tests {
     fn test_get_diffs() {
         let config = Config::new(Some("test/testconfig2.json")).unwrap();
         get_diffs(&config);
+        panic!();
     }
 }
