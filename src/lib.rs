@@ -50,23 +50,22 @@ impl IndivisualSetting {
 pub fn get_diffs(config: &Config) -> Result<()> {
     let url = Url::parse(&config.url)?;
     for setting in &config.settings {
-        let mut camp = image::open(Path::new(&config.images).join(&setting.name))?;
+        let camp = image::open(Path::new(&config.images).join(&setting.name))?;
         let screenshot = take_screenshot(camp.width() as i32, camp.height() as i32, url.join(&setting.path)?.as_str());
         println!("{:?}", camp.width());
         println!("{:?}", camp.height());
         if let Ok(actual) = screenshot {
-            let mut actual = image::load_from_memory(&actual)?;
-            actual.save("actual.png");
+            actual.save("actual.png")?;
             println!("{:?}", actual.width());
             println!("{:?}", actual.height());
             let dif = diff(&camp, &actual)?;
-            dif.save("diff.png");
+            dif.save("diff.png")?;
         }
     }
     Ok(())
 }
 
-fn take_screenshot(width: i32, height: i32, url: &str) -> anyhow::Result<Vec<u8>, failure::Error> {
+fn take_screenshot(width: i32, height: i32, url: &str) -> anyhow::Result<DynamicImage, failure::Error> {
     let browser = Browser::default()?;
     let tab = browser.new_tab_with_options(CreateTarget {
         url: url,
@@ -81,6 +80,8 @@ fn take_screenshot(width: i32, height: i32, url: &str) -> anyhow::Result<Vec<u8>
         None,
         true
     )?;
+
+    let screenshot = image::load_from_memory(&screenshot)?;
 
     Ok(screenshot)
 }
