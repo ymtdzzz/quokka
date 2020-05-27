@@ -13,7 +13,7 @@ pub type Result<T> = std::result::Result<T, Error>;
 #[derive(Serialize, Deserialize, Debug, PartialEq)]
 pub struct Config {
     images: String,
-    watch: String,
+    pub watch: String,
     url: String,
     settings: Vec<IndivisualSetting>,
 }
@@ -25,7 +25,7 @@ pub struct IndivisualSetting {
 }
 
 impl Config {
-    fn new(path: Option<&str>) -> Result<Config> {
+    pub fn new(path: Option<&str>) -> Result<Config> {
         let p: &str;
         match path {
             Some(str) => p = str,
@@ -47,25 +47,30 @@ impl IndivisualSetting {
     }
 }
 
-pub fn get_diffs(config: &Config) -> Result<()> {
-    let url = Url::parse(&config.url)?;
-    for setting in &config.settings {
-        let camp = image::open(Path::new(&config.images).join(&setting.name))?;
-        let screenshot = take_screenshot(camp.width() as i32, camp.height() as i32, url.join(&setting.path)?.as_str());
-        println!("{:?}", camp.width());
-        println!("{:?}", camp.height());
-        if let Ok(actual) = screenshot {
-            actual.save("actual.png")?;
-            println!("{:?}", actual.width());
-            println!("{:?}", actual.height());
-            let dif = diff(&camp, &actual)?;
-            dif.save("diff.png")?;
-        }
-    }
+// main process triggered by detecting file change
+pub fn run(config: &Config) -> Result<()> {
+    let diffs = get_diffs(&config)?;
+    // TODO: generate HTML response (images are displayed with byte array(https://stackoverflow.com/questions/20756042/how-to-display-an-image-stored-as-byte-array-in-html-javascript))
+    // TODO: return Response
+    // TODO: force reload
     Ok(())
 }
 
+pub fn get_diffs(config: &Config) -> Result<Vec<DynamicImage>> {
+    let url = Url::parse(&config.url)?;
+    let mut result: Vec<DynamicImage> = vec![];
+    for setting in &config.settings {
+        let camp = image::open(Path::new(&config.images).join(&setting.name))?;
+        let screenshot = take_screenshot(camp.width() as i32, camp.height() as i32, url.join(&setting.path)?.as_str());
+        if let Ok(actual) = screenshot {
+            result.push(diff(&camp, &actual)?);
+        }
+    }
+    Ok(result)
+}
+
 fn take_screenshot(width: i32, height: i32, url: &str) -> anyhow::Result<DynamicImage, failure::Error> {
+    // TODO: change width and height depends on the display scale settings
     let browser = Browser::default()?;
     let tab = browser.new_tab_with_options(CreateTarget {
         url: url,
