@@ -1,10 +1,11 @@
 extern crate quokka;
 
 use notify::{RecommendedWatcher, RecursiveMode, Watcher};
-use quokka::*;
 use std::sync::mpsc;
 use std::thread;
 use warp::{http::Uri, Filter};
+use std::str::FromStr;
+use quokka::*;
 
 // GRCOV_EXCL_START
 #[tokio::main]
@@ -24,19 +25,15 @@ async fn main() -> Result<()> {
     // )));
     watcher.watch(&config.watch, RecursiveMode::Recursive)?;
 
-    let body = r#"
-<html>
-    <head>
-        <title>HTML with warp!</title>
-    </head>
-    <body>
-        <h1>Response Test</h1>
-    </body>
-</html>
-"#;
-
+    let images = vec![image::open("test/design_camp/initial_screen_pc.png")?]; // let body = std::borrow::Cow::from(generate_html(images));
+    fn reply(images: &Vec<image::DynamicImage>) -> impl warp::reply::Reply {
+        let body = generate_html(images.to_vec());
+        warp::reply::html(body)
+    }
     let hello = warp::path::end()
-        .map(move || warp::reply::html(body));
+        .map(move || {
+            reply(&images)
+    });
 
     warp::serve(hello).run(([127, 0, 0, 1], 3030)).await;
     loop {

@@ -1,12 +1,17 @@
 use anyhow::Error;
+use headless_chrome::protocol::target::methods::CreateTarget;
+use headless_chrome::{protocol::page::*, Browser};
 use image::{open, DynamicImage, GenericImageView};
+use image_diff::diff;
+use notify::{RecommendedWatcher, RecursiveMode, Watcher};
+use serde::{Deserialize, Serialize};
 use std::fs;
 use std::path::Path;
-use headless_chrome::{Browser, protocol::page::*};
-use headless_chrome::protocol::target::methods::CreateTarget;
-use serde::{Serialize, Deserialize};
+use std::str::FromStr;
+use std::sync::mpsc;
+use std::thread;
 use url::Url;
-use image_diff::diff;
+use warp::{http::Uri, Filter};
 
 pub type Result<T> = std::result::Result<T, Error>;
 
@@ -50,10 +55,53 @@ impl IndivisualSetting {
 // main process triggered by detecting file change
 pub fn run(config: &Config) -> Result<()> {
     let diffs = get_diffs(&config)?;
+    let html = generate_html(diffs);
+    // let response = warp::path::end()
+    //     .map(|| warp::reply::html(html.as_str()));
+
     // TODO: generate HTML response (images are displayed with byte array(https://stackoverflow.com/questions/20756042/how-to-display-an-image-stored-as-byte-array-in-html-javascript))
     // TODO: return Response
     // TODO: force reload
     Ok(())
+}
+
+pub fn generate_html(diffs: Vec<DynamicImage>) -> String {
+    let html = r#"
+<html>
+    <head>
+        <title>HTML with warp!</title>
+    </head>
+    <body>
+        {}
+    </body>
+</html>
+"#;
+    let body = generate_body(diffs);
+
+    html.replace("{}", &body)
+}
+
+fn generate_body(diffs: Vec<DynamicImage>) -> String {
+    let mut i = 0;
+    let image_tags: Vec<_> = diffs
+        .iter()
+        .map(|d| {
+            i += 1;
+            let mut buffer = Vec::new();
+            let result = d.write_to(&mut buffer, image::ImageOutputFormat::Png);
+            if let Ok(_) = result {
+                format!(
+                    r#"
+    <img src="data:image/png;base64,{}">
+    "#,
+                    base64::encode(buffer)
+                )
+            } else {
+                "".to_string()
+            }
+        })
+        .collect();
+    image_tags.join("\n").to_owned()
 }
 
 pub fn get_diffs(config: &Config) -> Result<Vec<DynamicImage>> {
@@ -61,7 +109,11 @@ pub fn get_diffs(config: &Config) -> Result<Vec<DynamicImage>> {
     let mut result: Vec<DynamicImage> = vec![];
     for setting in &config.settings {
         let camp = image::open(Path::new(&config.images).join(&setting.name))?;
-        let screenshot = take_screenshot(camp.width() as i32, camp.height() as i32, url.join(&setting.path)?.as_str());
+        let screenshot = take_screenshot(
+            camp.width() as i32,
+            camp.height() as i32,
+            url.join(&setting.path)?.as_str(),
+        );
         if let Ok(actual) = screenshot {
             result.push(diff(&camp, &actual)?);
         }
@@ -69,7 +121,11 @@ pub fn get_diffs(config: &Config) -> Result<Vec<DynamicImage>> {
     Ok(result)
 }
 
-fn take_screenshot(width: i32, height: i32, url: &str) -> anyhow::Result<DynamicImage, failure::Error> {
+fn take_screenshot(
+    width: i32,
+    height: i32,
+    url: &str,
+) -> anyhow::Result<DynamicImage, failure::Error> {
     // TODO: change width and height depends on the display scale settings
     let browser = Browser::default()?;
     let tab = browser.new_tab_with_options(CreateTarget {
@@ -80,11 +136,7 @@ fn take_screenshot(width: i32, height: i32, url: &str) -> anyhow::Result<Dynamic
         enable_begin_frame_control: None,
     })?;
     tab.wait_for_element("body")?;
-    let screenshot = tab.capture_screenshot(
-        ScreenshotFormat::PNG,
-        None,
-        true
-    )?;
+    let screenshot = tab.capture_screenshot(ScreenshotFormat::PNG, None, true)?;
 
     let screenshot = image::load_from_memory(&screenshot)?;
 
@@ -123,7 +175,7 @@ mod tests {
                 IndivisualSetting::new("index_sp.png", "/"),
                 IndivisualSetting::new("posts_pc.png", "/posts"),
                 IndivisualSetting::new("posts_sp.png", "/posts"),
-            ]
+            ],
         };
         let actual = Config::new(Some("test/testconfig.json"));
         assert_eq!(true, actual.is_ok());

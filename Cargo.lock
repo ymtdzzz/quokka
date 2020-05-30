@@ -1477,6 +1477,7 @@ name = "quokka"
 version = "0.1.0"
 dependencies = [
  "anyhow",
+ "base64 0.12.1",
  "failure",
  "headless_chrome",
  "image 0.23.4",

@@ -20,3 +20,4 @@ image-diff = "0.1.12"
 notify = "5.0.0-pre.2"
 tokio = { version = "0.2", features = ["macros"] }
 warp = "0.2.3"
+base64 = "0.12.1"

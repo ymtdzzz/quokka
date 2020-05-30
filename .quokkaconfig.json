@@ -1,0 +1,11 @@
+{
+  "images": "test/design_camp",
+  "watch": "test/src",
+  "url": "127.0.0.1:9001",
+  "settings": [
+    {
+      "name": "initial_screen_pc.png",
+      "path": "/"
+    }
+  ]
+}
