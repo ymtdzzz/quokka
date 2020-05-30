@@ -11,35 +11,33 @@ use quokka::*;
 #[tokio::main]
 async fn main() -> Result<()> {
     let config = Config::new(None)?;
-    let (tx, rx) = mpsc::channel();
-
-    let mut watcher: RecommendedWatcher = Watcher::new_immediate(move |res| {
-        match res {
-            Ok(event) => tx.send(format!("event: {:?}", event)).unwrap(),
-            Err(e) => tx.send(format!("watch error: {:?}", e)).unwrap(),
-        }
-    })?;
-
+    // let (tx, rx) = mpsc::channel();
+    // let mut watcher: RecommendedWatcher = Watcher::new_immediate(move |res| {
+    //     match res {
+    //         Ok(event) => tx.send(format!("event: {:?}", event)).unwrap(),
+    //         Err(e) => tx.send(format!("watch error: {:?}", e)).unwrap(),
+    //     }
+    // })?;
     // watcher.configure(notify::Config::OngoingEvents(Some(
     //     std::time::Duration::from_millis(500),
     // )));
-    watcher.watch(&config.watch, RecursiveMode::Recursive)?;
+    // watcher.watch(&config.watch, RecursiveMode::Recursive)?;
 
-    let images = vec![image::open("test/design_camp/initial_screen_pc.png")?]; // let body = std::borrow::Cow::from(generate_html(images));
-    fn reply(images: &Vec<image::DynamicImage>) -> impl warp::reply::Reply {
-        let body = generate_html(images.to_vec());
-        warp::reply::html(body)
-    }
-    let hello = warp::path::end()
+    let diffs = get_diffs(&config)?;
+    // fn reply(images: &Vec<image::DynamicImage>) -> impl warp::reply::Reply {
+    //     let body = generate_html(images.to_vec());
+    //     warp::reply::html(body)
+    // }
+    let response = warp::path::end()
         .map(move || {
-            reply(&images)
+            reply(&diffs)
     });
 
-    warp::serve(hello).run(([127, 0, 0, 1], 3030)).await;
-    loop {
-        let event = rx.recv().unwrap();
-        println!("Got: {:?}", event);
-    }
+    warp::serve(response).run(([127, 0, 0, 1], 3030)).await;
+    // loop {
+    //     let event = rx.recv().unwrap();
+    //     println!("Got: {:?}", event);
+    // }
 
     Ok(())
 }

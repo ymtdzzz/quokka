@@ -862,9 +862,9 @@ dependencies = [
 
 [[package]]
 name = "image-diff"
-version = "0.1.12"
+version = "0.1.13"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2c425579b75cc9798c02e0d6212be1726d8f93c14f85524923f1b538f5e89f58"
+checksum = "0c75357f161adf979a8b4b3d32d5d6ed84fe5d2263c40227d656ec4978468d3d"
 dependencies = [
  "anyhow",
  "image 0.23.4",

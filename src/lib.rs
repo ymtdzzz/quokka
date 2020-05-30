@@ -12,6 +12,7 @@ use std::sync::mpsc;
 use std::thread;
 use url::Url;
 use warp::{http::Uri, Filter};
+use anyhow::Context;
 
 pub type Result<T> = std::result::Result<T, Error>;
 
@@ -53,16 +54,22 @@ impl IndivisualSetting {
 }
 
 // main process triggered by detecting file change
-pub fn run(config: &Config) -> Result<()> {
-    let diffs = get_diffs(&config)?;
-    let html = generate_html(diffs);
+// pub fn run(config: &Config) -> Result<()> {
+    // let diffs = get_diffs(&config)?;
     // let response = warp::path::end()
-    //     .map(|| warp::reply::html(html.as_str()));
+    //     .map(move || {
+    //         reply(&diffs)
+    //     });
 
     // TODO: generate HTML response (images are displayed with byte array(https://stackoverflow.com/questions/20756042/how-to-display-an-image-stored-as-byte-array-in-html-javascript))
     // TODO: return Response
     // TODO: force reload
-    Ok(())
+    // Ok(())
+// }
+
+pub fn reply(images: &Vec<image::DynamicImage>) -> impl warp::reply::Reply {
+    let body = generate_html(images.to_vec());
+    warp::reply::html(body)
 }
 
 pub fn generate_html(diffs: Vec<DynamicImage>) -> String {
@@ -82,14 +89,14 @@ pub fn generate_html(diffs: Vec<DynamicImage>) -> String {
 }
 
 fn generate_body(diffs: Vec<DynamicImage>) -> String {
-    let mut i = 0;
     let image_tags: Vec<_> = diffs
         .iter()
         .map(|d| {
-            i += 1;
             let mut buffer = Vec::new();
             let result = d.write_to(&mut buffer, image::ImageOutputFormat::Png);
             if let Ok(_) = result {
+                let image = image::load_from_memory(&buffer).unwrap();
+                image.save("afe.png").unwrap();
                 format!(
                     r#"
     <img src="data:image/png;base64,{}">
